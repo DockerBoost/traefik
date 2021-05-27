@@ -20,11 +20,11 @@ http:
         period: 10s
         sourceCriterion:
           ipStrategy:
-            depth: 3
+            depth: 2
 
   services:
     # Define how to reach an existing service on our infrastructure
     localhost:
       loadBalancer:
         servers:
-          - url: http://localhost/
+          - url: http://localhost:8001/

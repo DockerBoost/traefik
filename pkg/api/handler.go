@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/traefik/traefik/v2/pkg/blacklist"
 	"net/http"
 	"reflect"
 	"strings"
@@ -92,6 +93,8 @@ func (h Handler) createRouter() *mux.Router {
 
 	// Experimental endpoint
 	router.Methods(http.MethodGet).Path("/api/overview").HandlerFunc(h.getOverview)
+	router.Methods(http.MethodGet).Path("/api/blacklist").HandlerFunc(blacklist.ApiGetHandler)
+	router.Methods(http.MethodPost).Path("/api/blacklist").HandlerFunc(blacklist.ApiPostHandler)
 
 	router.Methods(http.MethodGet).Path("/api/entrypoints").HandlerFunc(h.getEntryPoints)
 	router.Methods(http.MethodGet).Path("/api/entrypoints/{entryPointID}").HandlerFunc(h.getEntryPoint)

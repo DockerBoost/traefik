@@ -3,7 +3,7 @@ package ratelimiter
 
 import (
 	"context"
-	"fmt"
+	"github.com/traefik/traefik/v2/pkg/blacklist"
 	"net/http"
 	"time"
 
@@ -105,13 +105,29 @@ func (rl *rateLimiter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := middlewares.GetLoggerCtx(r.Context(), rl.name, typeName)
 	logger := log.FromContext(ctx)
 
-	source, amount, err := rl.sourceMatcher.Extract(r)
+	//source, amount, err := rl.sourceMatcher.Extract(r)
+	source, _, err := rl.sourceMatcher.Extract(r)
 	if err != nil {
 		logger.Errorf("could not extract source of request: %v", err)
 		http.Error(w, "could not extract source of request", http.StatusInternalServerError)
 		return
 	}
 
+	bl := blacklist.GetInstance()
+	if bl.IsBanned(source) {
+		http.Error(w, "Too fast", http.StatusTooManyRequests)
+		bl.PlaceRequest(source, 429, r.Method)
+		return
+	}
+
+	recorder := newResponseRecorder(w)
+
+	rl.next.ServeHTTP(recorder, r)
+
+	bl.PlaceRequest(source, recorder.getCode(), r.Method)
+
+	return
+/*
 	if amount != 1 {
 		logger.Infof("ignoring token bucket amount > 1: %d", amount)
 	}
@@ -128,6 +144,16 @@ func (rl *rateLimiter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	allowed := bucket.Allow()
+	if !allowed {
+		http.Error(w, "Too fast", http.StatusTooManyRequests)
+		return
+	}
+
+	// everything is fine
+	rl.next.ServeHTTP(w, r)
+	/*
+
 	res := bucket.Reserve()
 	if !res.OK() {
 		http.Error(w, "No bursty traffic allowed", http.StatusTooManyRequests)
@@ -143,12 +169,12 @@ func (rl *rateLimiter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	time.Sleep(delay)
-	rl.next.ServeHTTP(w, r)
+	rl.next.ServeHTTP(w, r)*/
 }
 
 func (rl *rateLimiter) serveDelayError(ctx context.Context, w http.ResponseWriter, r *http.Request, delay time.Duration) {
-	w.Header().Set("Retry-After", fmt.Sprintf("%.0f", delay.Seconds()))
-	w.Header().Set("X-Retry-In", delay.String())
+	//w.Header().Set("Retry-After", fmt.Sprintf("%.0f", delay.Seconds()))
+	//w.Header().Set("X-Retry-In", delay.String())
 	w.WriteHeader(http.StatusTooManyRequests)
 
 	if _, err := w.Write([]byte(http.StatusText(http.StatusTooManyRequests))); err != nil {

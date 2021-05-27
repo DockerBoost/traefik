@@ -1,6 +1,7 @@
 package ip
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -36,11 +37,18 @@ type DepthStrategy struct {
 func (s *DepthStrategy) GetIP(req *http.Request) string {
 	xff := req.Header.Get(xForwardedFor)
 	xffs := strings.Split(xff, ",")
+	ret := req.RemoteAddr
 
-	if len(xffs) < s.Depth {
-		return ""
+	if len(xffs)-s.Depth < 0 {
+		ip, _, err := net.SplitHostPort(req.RemoteAddr)
+		if err == nil {
+			ret = ip
+		}
+	} else {
+		ret = strings.TrimSpace(xffs[len(xffs)-s.Depth])
 	}
-	return strings.TrimSpace(xffs[len(xffs)-s.Depth])
+	fmt.Printf("\n\nDepthStrategy.GetIP(%d). XFFS: '%s' RemoteAddr: %s Ret: %s\n\n", s.Depth, xff, req.RemoteAddr, ret)
+	return ret
 }
 
 // CheckerStrategy a strategy based on an IP Checker
