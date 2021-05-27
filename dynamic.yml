@@ -1,0 +1,30 @@
+http:
+  routers:
+    # Define a connection between requests and services
+    to-localhost:
+      rule: "Host(`localhost`)"
+      entrypoints:
+        - web
+      # If the rule matches, applies the middleware
+      middlewares:
+        - test-ratelimit
+      # If the rule matches, forward to the whoami service (declared below)
+      service: localhost
+
+  middlewares:
+    # Define an authentication mechanism
+    test-ratelimit:
+      rateLimit:
+        average: 250
+        burst: 500
+        period: 10s
+        sourceCriterion:
+          ipStrategy:
+            depth: 3
+
+  services:
+    # Define how to reach an existing service on our infrastructure
+    localhost:
+      loadBalancer:
+        servers:
+          - url: http://localhost/

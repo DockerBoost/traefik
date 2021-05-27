@@ -137,6 +137,7 @@ func (rl *rateLimiter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	delay := res.Delay()
 	if delay > rl.maxDelay {
 		res.Cancel()
+		fmt.Printf("RateLimited\n")
 		rl.serveDelayError(ctx, w, r, delay)
 		return
 	}
