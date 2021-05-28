@@ -113,7 +113,7 @@ func (rl *rateLimiter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.RequestURI == "/__debug_bl__" {
-		http.Error(w, source, http.StatusExpectationFailed)
+		http.Error(w, source+"\n"+r.Header.Get("X-Forwarded-For"), http.StatusExpectationFailed)
 		return
 	}
 
