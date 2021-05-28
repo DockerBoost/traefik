@@ -121,7 +121,7 @@ func (rl *rateLimiter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.RequestURI == "/__debug_bl__" {
-		blacklist.DebugBl(source, w, r)
+		blacklist.DebugBl(source, rl.balancerName, w, r)
 		return
 	}
 

@@ -6,13 +6,14 @@ import (
 	"net/http"
 )
 
-func DebugBl(source string, rw http.ResponseWriter, r *http.Request) {
+func DebugBl(source string, balancerName string, rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(rw)
 	enc.SetIndent("", "\t")
 	result := map[string]interface{}{
-		"source": source,
-		"xff": r.Header.Get("X-Forwarded-For"),
+		"s": source,
+		"x": r.Header.Get("X-Forwarded-For"),
+		"lb": balancerName,
 	}
 	err := enc.Encode(result)
 	if err != nil {
