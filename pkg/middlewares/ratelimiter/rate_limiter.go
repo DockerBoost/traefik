@@ -5,6 +5,7 @@ import (
 	"context"
 	"github.com/traefik/traefik/v2/pkg/blacklist"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/mailgun/ttlmap"
@@ -35,6 +36,7 @@ type rateLimiter struct {
 	next          http.Handler
 
 	buckets *ttlmap.TtlMap // actual buckets, keyed by source.
+	balancerName string
 }
 
 // New returns a rate limiter middleware.
@@ -86,6 +88,11 @@ func New(ctx context.Context, next http.Handler, config dynamic.RateLimit, name 
 		}
 	}
 
+	balancerName := os.Getenv("BALANCER_NAME")
+	if balancerName == "" {
+		balancerName, _ = os.Hostname()
+	}
+
 	return &rateLimiter{
 		name:          name,
 		rate:          rate.Limit(rtl),
@@ -94,6 +101,7 @@ func New(ctx context.Context, next http.Handler, config dynamic.RateLimit, name 
 		next:          next,
 		sourceMatcher: sourceMatcher,
 		buckets:       buckets,
+		balancerName:  balancerName,
 	}, nil
 }
 
@@ -112,6 +120,8 @@ func (rl *rateLimiter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not extract source of request", http.StatusInternalServerError)
 		return
 	}
+
+	w.Header().Set("x-lb", rl.balancerName)
 
 	bl := blacklist.GetInstance()
 	if bl.IsBanned(source) {
