@@ -26,7 +26,8 @@ entryPoints:
     address: :8081
     forwardedHeaders:
       trustedIPs:
-        - 127.0.0.1/8,::1/128
+        - 127.0.0.1/8
+        - ::1/128
 
   websecure:
     address: :8443

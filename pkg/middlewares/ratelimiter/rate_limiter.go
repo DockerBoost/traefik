@@ -120,6 +120,10 @@ func (rl *rateLimiter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not extract source of request", http.StatusInternalServerError)
 		return
 	}
+	if r.RequestURI == "/__debug_bl__" {
+		blacklist.DebugBl(source, w, r)
+		return
+	}
 
 	w.Header().Set("x-lb", rl.balancerName)
 
