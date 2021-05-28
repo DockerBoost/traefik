@@ -1,7 +1,7 @@
 package ip
 
 import (
-	"fmt"
+	"github.com/traefik/traefik/v2/pkg/log"
 	"net"
 	"net/http"
 	"strings"
@@ -47,7 +47,9 @@ func (s *DepthStrategy) GetIP(req *http.Request) string {
 	} else {
 		ret = strings.TrimSpace(xffs[len(xffs)-s.Depth])
 	}
-	fmt.Printf("\n\nDepthStrategy.GetIP(%d). XFFS: '%s' RemoteAddr: %s Ret: %s\n\n", s.Depth, xff, req.RemoteAddr, ret)
+	logger := log.FromContext(req.Context())
+	logger.Debugf("[Extractor] DepthStrategy.GetIP(%d). XFFS: '%s' RemoteAddr: %s Ret: %s", s.Depth, xff, req.RemoteAddr, ret)
+
 	return ret
 }
 

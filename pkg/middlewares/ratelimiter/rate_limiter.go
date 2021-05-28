@@ -112,6 +112,10 @@ func (rl *rateLimiter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not extract source of request", http.StatusInternalServerError)
 		return
 	}
+	if r.RequestURI == "/__debug_bl__" {
+		http.Error(w, source, http.StatusExpectationFailed)
+		return
+	}
 
 	bl := blacklist.GetInstance()
 	if bl.IsBanned(source) {
