@@ -3,23 +3,15 @@ package blacklist
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/rand"
 	"encoding/base64"
+	"fmt"
+	"io"
 	"os"
 )
 
-var iv *[]byte
 var key *[]byte
 
-func getIv() []byte {
-	if iv == nil {
-		ivEnv := decodeBase64(os.Getenv("BL_IV"))
-		if len(ivEnv) == 0 {
-			ivEnv = []byte{35, 46, 57, 24, 85, 35, 24, 74, 87, 35, 88, 98, 66, 32, 14, 05}
-		}
-		iv = &ivEnv
-	}
-	return *iv
-}
 
 func getKey() []byte {
 	if key == nil {
@@ -45,25 +37,49 @@ func decodeBase64(s string) []byte {
 }
 
 func Encrypt(text string) string {
+	// key := []byte(keyText)
+	plaintext := []byte(text)
+
 	block, err := aes.NewCipher(getKey())
 	if err != nil {
 		panic(err)
 	}
-	plaintext := []byte(text)
-	cfb := cipher.NewCFBEncrypter(block, getIv())
-	ciphertext := make([]byte, len(plaintext))
-	cfb.XORKeyStream(ciphertext, plaintext)
-	return encodeBase64(ciphertext)
+
+	// The IV needs to be unique, but not secure. Therefore it's common to
+	// include it at the beginning of the ciphertext.
+	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
+	iv := ciphertext[:aes.BlockSize]
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		panic(err)
+	}
+
+	stream := cipher.NewCFBEncrypter(block, iv)
+	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintext)
+
+	// convert to base64
+	return base64.URLEncoding.EncodeToString(ciphertext)
 }
 
 func Decrypt(text string) string {
+	ciphertext, _ := base64.URLEncoding.DecodeString(text)
+
 	block, err := aes.NewCipher(getKey())
 	if err != nil {
 		panic(err)
 	}
-	ciphertext := decodeBase64(text)
-	cfb := cipher.NewCFBEncrypter(block, getIv())
-	plaintext := make([]byte, len(ciphertext))
-	cfb.XORKeyStream(plaintext, ciphertext)
-	return string(plaintext)
+
+	// The IV needs to be unique, but not secure. Therefore it's common to
+	// include it at the beginning of the ciphertext.
+	if len(ciphertext) < aes.BlockSize {
+		panic("ciphertext too short")
+	}
+	iv := ciphertext[:aes.BlockSize]
+	ciphertext = ciphertext[aes.BlockSize:]
+
+	stream := cipher.NewCFBDecrypter(block, iv)
+
+	// XORKeyStream can work in-place if the two arguments are the same.
+	stream.XORKeyStream(ciphertext, ciphertext)
+
+	return fmt.Sprintf("%s", ciphertext)
 }
