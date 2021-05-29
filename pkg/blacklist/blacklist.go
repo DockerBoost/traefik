@@ -12,7 +12,7 @@ const CollectConcurrency = 64
 const DefaultIpStoreDuration = time.Hour
 const MethodPost = "post"
 const MethodHead = "head"
-const DefaultBanDuration = time.Minute * 2
+const DefaultBanDuration = time.Minute * 30
 
 //const CollectInterval = 60000
 const CollectInterval = 10000
