@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/traefik/traefik/v2/pkg/log"
 	"net/http"
+	"time"
 )
 
 func ApiGetHandler(rw http.ResponseWriter, request *http.Request) {
@@ -30,6 +31,7 @@ func apiGetIp(ip string, rw http.ResponseWriter, request *http.Request) {
 		"TotalPeriodStats": ipStat.TotalPeriodStats,
 		"AveragePeriodStats": ipStat.AveragePeriodStats,
 		"Blocked": ipStat.Blocked.Load(),
+		"BlockedExpires": ipStat.BlockExpires.Load(),
 		"Comment": ipStat.Comment.Load(),
 	}
 	minStats := map[int64]interface{}{}
@@ -77,20 +79,26 @@ func ApiPostHandler(rw http.ResponseWriter, request *http.Request) {
 		Ips     []string
 		Comment string
 		Ban     bool
+		Duration string
 	}
 	err := decoder.Decode(&req)
 	if err != nil {
 		log.FromContext(request.Context()).Error(err)
 		writeError(rw, err.Error(), http.StatusBadRequest)
 	}
-
+	duration := DefaultBanDuration
+	if req.Duration != "" {
+		if d, err := time.ParseDuration(req.Duration); err == nil {
+			duration = d
+		}
+	}
 	if req.Ip != "" {
 		req.Ips = []string{req.Ip}
 	}
 	if len(req.Ips) > 0 {
 		bl := GetInstance()
 		for _, ip := range req.Ips {
-			bl.Ban(ip, req.Comment, req.Ban)
+			bl.Ban(ip, req.Comment, req.Ban, duration)
 		}
 	}
 	rw.Write([]byte(`"OK"`))

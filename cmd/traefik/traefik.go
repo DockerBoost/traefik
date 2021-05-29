@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"github.com/traefik/traefik/v2/pkg/blacklist"
 	stdlog "log"
 	"net/http"
 	"os"
@@ -46,6 +47,7 @@ import (
 )
 
 func main() {
+	blacklist.GetInstance()
 	// traefik config inits
 	tConfig := cmd.NewTraefikConfiguration()
 

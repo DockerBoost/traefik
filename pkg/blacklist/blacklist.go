@@ -6,6 +6,17 @@ import (
 	"time"
 )
 
+const MaxSources = 2<<12
+const MinutesToStore = 30
+const CollectConcurrency = 64
+const DefaultIpStoreDuration = time.Hour
+const MethodPost = "post"
+const MethodHead = "head"
+const DefaultBanDuration = time.Minute * 2
+
+//const CollectInterval = 60000
+const CollectInterval = 10000
+
 type SliceStats struct {
 	Code2xx atomic.Uint64
 	Code404 atomic.Uint64
@@ -40,6 +51,8 @@ type IpStats struct {
 	Average            float64
 	m                  sync.RWMutex
 	Blocked            atomic.Bool
+	BlockExpires       atomic.Int64
+	BlockMinute        int64
 	Comment            atomic.String
 }
 
@@ -51,16 +64,6 @@ type Blacklist struct {
 	listMutex         sync.RWMutex
 	aggregateMutex    sync.RWMutex
 }
-
-const MaxSources = 65536
-const MinutesToStore = 30
-const CollectConcurrency = 64
-const DefaultIpStoreDuration = time.Hour
-const MethodPost = "post"
-const MethodHead = "head"
-
-//const CollectInterval = 60000
-const CollectInterval = 60000
 
 var blackListInstance *Blacklist
 

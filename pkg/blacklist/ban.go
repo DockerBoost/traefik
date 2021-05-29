@@ -3,9 +3,10 @@ package blacklist
 import (
 	"go.uber.org/atomic"
 	"sync"
+	"time"
 )
 
-func (list *Blacklist) Ban(ip string, comment string, ban bool) {
+func (list *Blacklist) Ban(ip string, comment string, ban bool, duration time.Duration) {
 	var stats *IpStats
 
 	statsI, ok := list.IpList.Get(ip)
@@ -22,6 +23,8 @@ func (list *Blacklist) Ban(ip string, comment string, ban bool) {
 			Average:            0,
 			m:                  sync.RWMutex{},
 			Blocked:            atomic.Bool{},
+			BlockExpires:       atomic.Int64{},
+			BlockMinute:        0,
 			Comment:            atomic.String{},
 		}
 		list.IpList.AddWithTTL(ip, stats, DefaultIpStoreDuration)
@@ -30,6 +33,8 @@ func (list *Blacklist) Ban(ip string, comment string, ban bool) {
 	if len(comment) > 0 {
 		stats.Comment.Store(comment)
 	}
+	stats.BlockMinute = time.Now().Unix() / 60
+	stats.BlockExpires.Store(time.Now().Add(duration).Unix())
 	list.BannedIps.Store(ip, ban)
 }
 
@@ -51,5 +56,23 @@ func (list *Blacklist) IsBanned(ip string) bool {
 	return v.(bool)
 }
 
+func calculateVerdict(stats *IpStats, minutesStored uint64) string {
+	if minutesStored == 0 {
+		return ""
+	}
 
+	if stats.AveragePeriodStats.Code429 > 50 {
+		return "Avg.429 gt 50"
+	}
+	if stats.AveragePeriodStats.Total > 5000 {
+		return "Avg.Total gt 5000"
+	}
+	if stats.AveragePeriodStats.Code404 > 500 {
+		return "Avg.404 gt 500"
+	}
+	if stats.AveragePeriodStats.Code2xx > 3500 {
+		return "Avg.2xx gt 3500"
+	}
 
+	return ""
+}
