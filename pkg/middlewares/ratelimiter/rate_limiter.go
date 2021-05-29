@@ -129,7 +129,7 @@ func (rl *rateLimiter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	bl := blacklist.GetInstance()
 	if bl.IsBanned(source) {
-		supportCode := blacklist.Encrypt(source + "@" + rl.balancerName)
+		supportCode := blacklist.Encrypt(source + "@" + rl.balancerName + " xff:" + r.Header.Get("X-Forwarded-For" + " raddr:" + r.RemoteAddr))
 		http.Error(w, "Too fast! Please contact website technical support and tell them this code: " + supportCode, http.StatusTooManyRequests)
 		bl.PlaceRequest(source, 429, r.Method)
 		return
