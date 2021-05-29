@@ -39,13 +39,19 @@ func (s *DepthStrategy) GetIP(req *http.Request) string {
 	xffs := strings.Split(xff, ",")
 	ret := req.RemoteAddr
 
-	if len(xffs)-s.Depth < 0 {
+	if xffs[0] == "" || len(xffs)-s.Depth < 0 {
 		ip, _, err := net.SplitHostPort(req.RemoteAddr)
 		if err == nil {
 			ret = ip
 		}
 	} else {
 		ret = strings.TrimSpace(xffs[len(xffs)-s.Depth])
+	}
+	if ret == "" {
+		ip, _, err := net.SplitHostPort(req.RemoteAddr)
+		if err == nil {
+			ret = ip
+		}
 	}
 	logger := log.FromContext(req.Context())
 	logger.Debugf("[Extractor] DepthStrategy.GetIP(%d). XFFS: '%s' RemoteAddr: %s Ret: %s", s.Depth, xff, req.RemoteAddr, ret)
