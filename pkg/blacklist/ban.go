@@ -61,6 +61,9 @@ func calculateVerdict(stats *IpStats, minutesStored uint64) string {
 		return ""
 	}
 
+	if stats.AveragePeriodStats.Total > 250 && stats.TotalPeriodStats.Total > 600 {
+		return "Avg.Total gt 250 and Total > 600"
+	}
 	if stats.AveragePeriodStats.Code429 > 50 {
 		return "Avg.429 gt 50"
 	}
